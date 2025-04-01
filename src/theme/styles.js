@@ -1,37 +1,44 @@
 const styles = {
   global: {
     "html, body": {
-      backgroundColor: "gray.900",
-      color: "whiteAlpha.800",
+      backgroundColor: "white",
+      color: "black",
     },
     svg: {
       cursor: "pointer",
     },
     ".table": {
-      border: "1px solid #424242",
+      border: "1px solid #000000",
     },
     ".tr": {
       display: "flex",
       width: "fit-content",
     },
-    ".th, .td": { boxShadow: "inset 0 0 0 1px #424242" },
-    ".th": {
+    ".th": { 
       position: "relative",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      color: "gray.400",
+      color: "black",
       padding: "0.5rem",
       fontWeight: "bold",
       fontSize: "xs",
       textTransform: "uppercase",
       textAlign: "center",
+      borderBottom: "1px solid #000000",
+    },
+    ".td": {
+      boxShadow: "none",
+    },
+    ".td.calculated": {
+      borderTop: "1px solid #000000",
     },
     ".td > input": {
       m: "1",
       padding: "0.2rem",
       bg: "transparent",
       maxW: "100%",
+      color: "black",
     },
     ".date-wrapper": {
       display: "flex",
