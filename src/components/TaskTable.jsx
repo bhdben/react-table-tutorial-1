@@ -100,7 +100,7 @@ const columns = [
       accessorKey: `2026-${month}`,
       header: `2026-${month}`,
       size: 100,
-      cell: ({ getValue, row, column, table }) => {
+      cell: ({ getValue, row, column, table, onFocus }) => {
         const value = getValue();
         const type = row.original.type;
 
@@ -120,6 +120,7 @@ const columns = [
                 size="sm"
                 height="24px"
                 width="100%"
+                onFocus={onFocus}
                 onChange={(e) => {
                   table.options.meta?.updateData(
                     row.index,
@@ -224,6 +225,54 @@ const columns = [
 
 const TaskTable = () => {
   const [data, setData] = useState(initialData);
+  const [focusedCell, setFocusedCell] = useState(null);
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    if (!focusedCell) return;
+
+    // Get the pasted content from clipboard
+    const pastedText = e.clipboardData.getData('text');
+    
+    // Split into rows and cells
+    const rows = pastedText.split('\n').filter(row => row.trim());
+    const pastedData = rows.map(row => row.split('\t'));
+
+    // Update the data
+    setData(prevData => {
+      const newData = [...prevData];
+      const [focusedRowIndex, focusedColumnIndex] = focusedCell;
+
+      pastedData.forEach((row, rowOffset) => {
+        row.forEach((value, colOffset) => {
+          const targetRowIndex = focusedRowIndex + rowOffset;
+          const targetColumnIndex = focusedColumnIndex + colOffset;
+
+          // Skip if we're out of bounds or trying to paste into a calculated/header cell
+          if (targetRowIndex >= newData.length || 
+              newData[targetRowIndex].type !== 'input') {
+            return;
+          }
+
+          // Get the column key for this position
+          const columnKey = columns[targetColumnIndex]?.accessorKey;
+          if (!columnKey || columnKey === 'category') return;
+
+          // Update the value, converting to number if possible
+          newData[targetRowIndex] = {
+            ...newData[targetRowIndex],
+            [columnKey]: isNaN(parseFloat(value)) ? value : parseFloat(value)
+          };
+        });
+      });
+
+      return newData;
+    });
+  };
+
+  const handleFocus = (rowIndex, columnIndex) => {
+    setFocusedCell([rowIndex, columnIndex]);
+  };
 
   const table = useReactTable({
     data,
@@ -246,7 +295,11 @@ const TaskTable = () => {
   });
 
   return (
-    <Box overflowX="auto">
+    <Box 
+      overflowX="auto" 
+      onPaste={handlePaste}
+      tabIndex={0} // Make the container focusable
+    >
       <Box className="table" w="max-content">
         {table.getHeaderGroups().map((headerGroup) => (
           <Box className="tr" key={headerGroup.id}>
@@ -265,9 +318,9 @@ const TaskTable = () => {
             ))}
           </Box>
         ))}
-        {table.getRowModel().rows.map((row) => (
+        {table.getRowModel().rows.map((row, rowIndex) => (
           <Box className="tr" key={row.id}>
-            {row.getVisibleCells().map((cell) => {
+            {row.getVisibleCells().map((cell, columnIndex) => {
               const isCalculated = row.original.type === 'calculated';
               const isTotal = ['Total Revenues', 'Total Department Expense', 'Total Undistributed Expense', 'House Profit'].includes(row.original.category);
               
@@ -280,7 +333,10 @@ const TaskTable = () => {
                   overflow="hidden"
                   textOverflow="ellipsis"
                 >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  {cell.column.columnDef.cell({
+                    ...cell.getContext(),
+                    onFocus: () => handleFocus(rowIndex, columnIndex),
+                  })}
                 </Box>
               );
             })}
